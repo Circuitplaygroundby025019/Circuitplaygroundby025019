@@ -1,0 +1,91 @@
+#include "HX711.h"
+#include <Servo.h>
+
+#define DOUT_PIN 2
+#define CLK_PIN 3
+#define BUTTON_1 4
+#define BUTTON_2 5
+#define BUTTON_3 6
+#define BUZZER_PIN 7
+#define SERVO_PIN 9
+#define PIR_PIN 10
+
+HX711 scale;
+Servo myservo;
+
+int buzzerState = LOW;
+int pirState = LOW;
+long savedWeight = 0;
+const int buzzerFrequency = 1000; // Set the frequency of the buzzer
+const int pirRotateAngle = 45;
+const int pirRotateDelay = 1000; // Delay between rotations
+
+void setup() {
+  Serial.begin(9600);
+  scale.begin(DOUT_PIN, CLK_PIN);
+  pinMode(BUTTON_1, INPUT_PULLUP);
+  pinMode(BUTTON_2, INPUT_PULLUP);
+  pinMode(BUTTON_3, INPUT_PULLUP);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(PIR_PIN, INPUT);
+  myservo.attach(SERVO_PIN);
+}
+
+void loop() {
+  if (digitalRead(BUTTON_1) == LOW) {
+    // Button 1 pressed, save weight and beep the buzzer
+    saveWeight();
+    beepBuzzer(3);
+  }
+
+  if (digitalRead(BUTTON_2) == LOW) {
+    // Button 2 pressed, reset weight and beep the buzzer
+    resetWeight();
+    beepBuzzer(4);
+  }
+
+  if (digitalRead(BUTTON_3) == LOW) {
+    // Button 3 pressed, stop the buzzer
+    stopBuzzer();
+  }
+
+  // Check PIR sensor
+  pirState = digitalRead(PIR_PIN);
+  if (pirState == HIGH) {
+    // PIR sensor detected motion, rotate the servo
+    rotateServo();
+  }
+}
+
+void saveWeight() {
+  savedWeight = scale.get_units(10);
+  Serial.print("Weight Saved: ");
+  Serial.println(savedWeight);
+}
+
+void resetWeight() {
+  savedWeight = 0;
+  Serial.println("Weight Reset");
+}
+
+void beepBuzzer(int beeps) {
+  for (int i = 0; i < beeps; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(500);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(500);
+  }
+}
+
+void stopBuzzer() {
+  digitalWrite(BUZZER_PIN, LOW);
+}
+
+void rotateServo() {
+  for (int i = 0; i < 2; i++) {
+    myservo.write(pirRotateAngle);
+    delay(pirRotateDelay);
+    myservo.write(0);
+    delay(pirRotateDelay);
+  }
+}
